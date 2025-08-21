@@ -1,0 +1,56 @@
+# Core Flask and Web Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# Machine Learning and Deep Learning
+torch==2.1.0
+torchaudio==2.1.0
+torchvision==0.16.0
+numpy==1.24.3
+scikit-learn==1.3.0
+
+# Audio Processing
+librosa==0.10.1
+soundfile==0.12.1
+ffmpeg-python==0.2.0
+
+# Computer Vision and Image Processing
+opencv-python==4.8.1.78
+pytesseract==0.3.10
+Pillow==10.0.1
+
+# Natural Language Processing
+nltk==3.8.1
+transformers==4.35.0
+
+# Speech Recognition and Transcription
+whisper==1.1.10
+openai-whisper==20231117
+
+# Email and Communication
+imapclient==3.0.1
+python-telegram-bot==20.6
+discord.py==2.3.2
+
+# Data Processing and Utilities
+pandas==2.0.3
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Dashboard and UI
+dash==2.14.1
+plotly==5.17.0
+
+# System and OS
+win11toast==1.0.0
+psutil==5.9.6
+
+# Development and Testing
+pytest==7.4.3
+black==23.11.0
+flake8==6.1.0
+
+# Additional Dependencies
+aiohttp==3.8.6
+aiofiles==23.2.1
+asyncio-mqtt==0.16.1
