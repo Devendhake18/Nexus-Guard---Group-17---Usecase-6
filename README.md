@@ -43,7 +43,7 @@
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Input Layer   │    │  AI Models      │    │  Alert System   │
 │                 │    │                 │    │                 │
-  │ • Text        │───▶│ • BiLSTM       │───▶│ • Telegram      │
+│ • Text          │───▶│ • BiLSTM        │───▶│ • Telegram      │
 │ • Audio         │    │ • RawNetLite    │    │ • Discord       │
 │ • Image         │    │ • TF-IDF        │    │ • Email         │
 │ • Video         │    │ • OCR           │    │ • Desktop       │
@@ -420,7 +420,6 @@ The Chrome Extension provides seamless web protection:
 ## 📝 License
 
 This project is developed for the MUFG Hackathon. All rights reserved.
-
 **⚠️ Important Note**: All pre-trained models are stored in Google Drive due to size constraints. Please use the provided drive link to access the models before running the application.
 
 **🔗 Model Access**: [Google Drive Models Folder](https://drive.google.com/drive/folders/1OGZ1Ztdp9VsrVgoe2XqCLQoqTtjPHmuS?usp=sharing)
