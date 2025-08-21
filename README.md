@@ -64,7 +64,7 @@
 
 #### 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/nexus-guard.git
+   [git clone https://github.com/yourusername/nexus-guard.git](https://github.com/Devendhake18/Nexus-Guard---Group-17---Usecase-6)
    cd nexus-guard
    ```
 
