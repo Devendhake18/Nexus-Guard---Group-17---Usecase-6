@@ -82,7 +82,7 @@
 Watch our demo videos to see Nexus Guard in action:
 
 - **🎥 Demo Video 1**: [Watch Demo Video 1](https://drive.google.com/file/d/1v20T9JeL8Cx0oAqRqylfoRe_VMJvM9X6/view?usp=sharing)
-- **🎥 Demo Video 2**: [Watch Demo Video 2](https://drive.google.com/file/d/1v20T9JeL8Cx0oAqRqylfoRe_VMJvM9X6/view?usp=sharing)
+- **🎥 Demo Video 2**: [Watch Demo Video 2](https://drive.google.com/file/d/1FtO7RpQKAXpr53Quxh-Vl_jQX-Vq_LwN/view?usp=sharing)
 
 ### Installation Steps
 
