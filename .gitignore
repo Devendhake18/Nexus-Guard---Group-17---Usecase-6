@@ -1,2 +1,76 @@
-".env" 
-".env" 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+temp/
+*.tmp
+*.temp
+
+# Model files (large files)
+*.pkl
+*.pth
+*.pt
+*.h5
+*.model
+
+# Audio/Video files
+*.mp3
+*.wav
+*.flac
+*.mp4
+*.avi
+*.mov
+
+# Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.ico 

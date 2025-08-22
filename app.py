@@ -1,9 +1,8 @@
 from __future__ import annotations
 import os
+import logging
 
 import asyncio
-import aiohttp
-import aiofiles
 import datetime as dt
 import signal
 import uuid
@@ -16,16 +15,27 @@ from imapclient import IMAPClient
 from email.header import decode_header
 import email
 
-from win11toast import toast  # Windows only; guard usage
+from win11toast import toast 
 from telegram import Update, Bot
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 import discord
 
 from dash import Dash, html, dcc, Output, Input
+from dash_auth import BasicAuth
 import aiohttp
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
 
 # -------------------------------
 # Global Shared State & Config
@@ -48,7 +58,6 @@ class Settings:
 
     IMAP_HOST: str = os.getenv("IMAP_HOST", "imap.gmail.com")
 
-    # EMAIL_API_URL: str = os.getenv("EMAIL_API_URL", "http://127.0.0.1:5000/predict-email")
     TEXT_API_URL: str = os.getenv("TEXT_API_URL", "http://127.0.0.1:5000/predict-text")
     AUDIO_API_URL: str = os.getenv("AUDIO_API_URL", "http://127.0.0.1:5000/predict-audio")
     IMAGE_API_URL: str = os.getenv("IMAGE_API_URL", "http://127.0.0.1:5000/predict-image")
@@ -110,12 +119,6 @@ async def call_email_prediction_api(text: str) -> Dict:
         async with session.post(SET.TEXT_API_URL, json={"text": text}) as r:
             r.raise_for_status()
             return await r.json()
-        
-# async def call_text_prediction_api(text: str) -> Dict:
-#     async with aiohttp.ClientSession() as session:
-#         async with session.post(SET.TEXT_API_URL, json={"text": text}) as r:
-#             r.raise_for_status()
-#             return await r.json()
 
 async def call_audio_prediction_api(file_path: str) -> Dict:
     async with aiohttp.ClientSession() as session:
@@ -200,7 +203,7 @@ async def send_telegram_alert(account_source: str, sender_name: str, scam_messag
                 await telegram_bot.send_photo(chat_id=SET.TELEGRAM_CHAT_ID, photo=img)
         await telegram_bot.send_message(chat_id=SET.TELEGRAM_CHAT_ID, text=msg)
     except Exception as e:
-        print(f"[WARN] Telegram alert failed: {e}")
+        logging.error(f"Telegram alert failed: {e}")
 
 # Discord client and helpers
 intents = discord.Intents.default()
@@ -212,15 +215,14 @@ discord_ready = asyncio.Event()
 
 @discord_client.event
 async def on_ready():
-    print(f"✅ Discord logged in as {discord_client.user}")
+    logging.info(f"Discord logged in as {discord_client.user}")
     discord_ready.set()
-
 
 async def send_discord_alert(account_source: str, sender_name: str, scam_message: str, is_spoofed: str = None, media_type: str = None):
     await discord_ready.wait()
     channel = discord_client.get_channel(1405486013803135029)
     if channel is None:
-        print("❌ Discord channel not found")
+        logging.error("Discord channel not found")
         return
     
     timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -229,7 +231,6 @@ async def send_discord_alert(account_source: str, sender_name: str, scam_message
         spoof_warning = f"\n🎭 **SPOOFED {media_type.upper()} DETECTED!**"
     
     message = (
-        "```diff\n"
         "████████████████████████████████\n"
         "█ 🚨🚨🚨  SCAM ALERT  🚨🚨🚨 █\n"
         "████████████████████████████████\n"
@@ -248,7 +249,7 @@ async def send_discord_alert(account_source: str, sender_name: str, scam_message
     try:
         await channel.send(message)
     except Exception as e:
-        print(f"[WARN] Discord alert failed: {e}")
+        logging.error(f"Discord alert failed: {e}")
 
 
 # Email alert
@@ -283,7 +284,7 @@ def send_alert_email(to_email: str, account_source: str, sender: str, sender_ema
         server.starttls()
         server.login(SET.EMAIL_ADDRESS, SET.EMAIL_PASSWORD)
         server.send_message(msg)
-        print(f"✅ Alert email sent to {to_email}")
+        logging.info(f"Alert email sent to {to_email}")
     finally:
         server.quit()
 
@@ -308,7 +309,7 @@ async def handle_telegram_text(update: Update, context: ContextTypes.DEFAULT_TYP
         "file_path": "",          # no file for text
         "prediction": "pending",  # let process_message handle it
     })
-    print(f"💬 Telegram text from {sender_name}: {text}")
+    logging.info(f"Telegram text from {sender_name}: {text}")
 
 
 async def handle_telegram_audio(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -324,7 +325,7 @@ async def handle_telegram_audio(update: Update, context: ContextTypes.DEFAULT_TY
 
     file_obj = await audio_message.get_file()
     await file_obj.download_to_drive(file_path)
-    print(f"🎵 Telegram audio saved: {file_path}")
+    logging.info(f"Telegram audio saved: {file_path}")
 
     messages.append({
         "source": "Telegram",
@@ -346,7 +347,7 @@ async def handle_telegram_photo(update: Update, context: ContextTypes.DEFAULT_TY
     file_path = os.path.join(SET.TEMP_ROOT, f"{photo.file_unique_id}.jpg")
     file = await photo.get_file()
     await file.download_to_drive(file_path)
-    print(f"📷 Telegram photo saved: {file_path}")
+    logging.info(f"Telegram photo saved: {file_path}")
 
     messages.append({
         "source": "Telegram",
@@ -358,7 +359,6 @@ async def handle_telegram_photo(update: Update, context: ContextTypes.DEFAULT_TY
         "prediction": "pending",
     })
 
-
 async def handle_telegram_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.video:
         return
@@ -368,7 +368,7 @@ async def handle_telegram_video(update: Update, context: ContextTypes.DEFAULT_TY
     file_path = os.path.join(SET.TEMP_ROOT, f"{video.file_unique_id}.mp4")
     file = await video.get_file()
     await file.download_to_drive(file_path)
-    print(f"🎥 Telegram video saved: {file_path}")
+    logging.info(f"Telegram video saved: {file_path}")
 
     messages.append({
         "source": "Telegram",
@@ -382,7 +382,7 @@ async def handle_telegram_video(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def run_telegram():
     if not SET.TELEGRAM_BOT_TOKEN:
-        print("[INFO] TELEGRAM_BOT_TOKEN missing; skipping Telegram bot")
+        logging.info("TELEGRAM_BOT_TOKEN missing; skipping Telegram bot")
         return
     app = ApplicationBuilder().token(SET.TELEGRAM_BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_telegram_text))
@@ -390,7 +390,7 @@ async def run_telegram():
     app.add_handler(MessageHandler(filters.PHOTO, handle_telegram_photo))
     app.add_handler(MessageHandler(filters.VIDEO, handle_telegram_video))
 
-    print("✅ Telegram bot running...")
+    logging.info("Telegram bot running...")
     await app.initialize()
     await app.start()
     await app.updater.start_polling()
@@ -437,7 +437,7 @@ async def on_message(message: discord.Message):
 
         file_path = os.path.join(SET.TEMP_ROOT, os.path.basename(attachment.filename))
         await attachment.save(file_path)
-        print(f"📥 Discord saved {media_type}: {file_path}")
+        logging.info(f"Discord saved {media_type}: {file_path}")
 
         content = {
             "audio": f"{attachment.filename} ⮜ The provided audio file may be fraudulent or contain suspicious content.",
@@ -457,7 +457,7 @@ async def on_message(message: discord.Message):
 
 async def run_discord():
     if not SET.DISCORD_TOKEN:
-        print("[INFO] DISCORD_TOKEN missing; skipping Discord bot")
+        logging.info("DISCORD_TOKEN missing; skipping Discord bot")
         return
     await discord_client.start(SET.DISCORD_TOKEN)
 
@@ -542,7 +542,7 @@ def fetch_new_gmail_messages_once(seen_uids: set) -> Tuple[List[Dict], set]:
 
 async def run_gmail():
     if not (SET.EMAIL_ADDRESS and SET.EMAIL_PASSWORD):
-        print("[INFO] EMAIL creds missing; skipping Gmail watcher")
+        logging.info("EMAIL creds missing; skipping Gmail watcher")
         return
     seen: set = set()
     while True:
@@ -568,6 +568,7 @@ MESSAGE_TYPE_CONFIG = {
 }
 
 dash_app = Dash(__name__)
+auth = BasicAuth(dash_app, {"admin":"admin"})
 
 dash_app.layout = html.Div([
     html.Div([
@@ -645,7 +646,10 @@ dash_app.layout = html.Div([
 ], style={"fontFamily":"-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif","backgroundColor":"#111827","minHeight":"100vh","padding":"24px"})
 
 @dash_app.callback(
-    [Output("messages-container", "children"), Output("safe-count", "children"), Output("threat-count", "children"), Output("active-channels", "children")],
+    [Output("messages-container", "children"), 
+     Output("safe-count", "children"), 
+     Output("threat-count", "children"), 
+     Output("active-channels", "children")],
     Input("interval", "n_intervals"),
 )
 def update_dashboard(_):
@@ -655,20 +659,20 @@ def update_dashboard(_):
     active_channels = len(set(m.get("source", "unknown") for m in last_msgs))
 
     nodes = []
+
     for m in last_msgs:
         source = (m.get("source", "unknown") or "unknown").lower()
         mtype = (m.get("type", "text") or "text").lower()
         is_safe = m.get("prediction") == "safe"
         confidence = m.get("confidence")
         status = m.get("status", "completed")
-        
-        # Spoofing detection
         is_spoofed = m.get("is_spoofed")
         spoof_confidence = m.get("spoof_confidence")
 
         c_cfg = CHANNEL_CONFIG.get(source, {"name":"Unknown","icon":"fas fa-question-circle","color":"#9ca3af","bg":"#374151"})
         t_cfg = MESSAGE_TYPE_CONFIG.get(mtype, MESSAGE_TYPE_CONFIG["file"]) if mtype not in MESSAGE_TYPE_CONFIG else MESSAGE_TYPE_CONFIG[mtype]
 
+        # Status tag
         if status == "processing":
             status_color, status_bg, status_border, status_text, status_icon = ("#f59e0b", "#451a03", "#f59e0b", "Processing...", "spinner fa-spin")
         elif is_safe:
@@ -676,43 +680,33 @@ def update_dashboard(_):
         else:
             status_color, status_bg, status_border, status_text, status_icon = ("#ef4444", "#7f1d1d", "#ef4444", "Threat", "exclamation-triangle")
 
-        # Create prominent spoofing tag for audio/video
+        # Spoof tag for audio/video
         spoof_tag = html.Div()
         if mtype in ("audio", "video") and is_spoofed and status == "completed":
             if is_spoofed == "spoofed":
-                spoof_color, spoof_bg, spoof_border = "#dc2626", "#991b1b", "#ef4444"
-                spoof_text, spoof_icon = "🎭 SPOOFED", "exclamation-triangle"
-                spoof_glow = "0 0 10px rgba(239, 68, 68, 0.5)"
+                spoof_color, spoof_bg, spoof_border, spoof_text, spoof_icon, spoof_glow = "#dc2626", "#991b1b", "#ef4444", "🎭 SPOOFED", "exclamation-triangle", "0 0 10px rgba(239, 68, 68, 0.5)"
             else:
-                spoof_color, spoof_bg, spoof_border = "#059669", "#047857", "#10b981"
-                spoof_text, spoof_icon = "✅ AUTHENTIC", "shield-alt"
-                spoof_glow = "0 0 10px rgba(16, 185, 129, 0.3)"
+                spoof_color, spoof_bg, spoof_border, spoof_text, spoof_icon, spoof_glow = "#059669", "#047857", "#10b981", "✅ AUTHENTIC", "shield-alt", "0 0 10px rgba(16, 185, 129, 0.3)"
             
             spoof_tag = html.Div([
                 html.I(className=f"fas fa-{spoof_icon}", style={"fontSize":"14px","color":spoof_color,"marginRight":"8px"}),
                 html.Span(spoof_text, style={"fontSize":"13px","fontWeight":"700","color":spoof_color,"textTransform":"uppercase","letterSpacing":"0.5px"}),
             ], style={
-                "display":"flex",
-                "alignItems":"center",
-                "padding":"6px 12px",
-                "backgroundColor":spoof_bg,
-                "borderRadius":"20px",
-                "border":f"2px solid {spoof_border}",
-                "marginLeft":"10px",
-                "boxShadow":spoof_glow,
+                "display":"flex","alignItems":"center","padding":"6px 12px","backgroundColor":spoof_bg,
+                "borderRadius":"20px","border":f"2px solid {spoof_border}","marginLeft":"10px","boxShadow":spoof_glow,
                 "animation":"pulse 2s infinite" if is_spoofed == "spoofed" else "none"
             })
 
-        # Create status tags row
+        # Status row with spoof tag
         status_row = html.Div([
             html.Div([
                 html.I(className=f"fas fa-{status_icon}", style={"fontSize":"12px","color":status_color,"marginRight":"6px"}),
                 html.Span(status_text, style={"fontSize":"12px","fontWeight":"600","color":status_color}),
             ], style={"display":"flex","alignItems":"center","padding":"4px 10px","backgroundColor":status_bg,"borderRadius":"16px","border":f"1px solid {status_border}"}),
-            spoof_tag  # Add spoofing tag here
-        ], style={"display":"flex","alignItems":"center","flexWrap":"wrap"})
+            spoof_tag
+        ], style={"display":"flex","alignItems":"center","gap":"8px","flexWrap":"wrap"})
 
-        # Create spoofing alert banner for spoofed content
+        # Spoof alert banner
         spoof_banner = html.Div()
         if mtype in ("audio", "video") and is_spoofed == "spoofed" and status == "completed":
             spoof_banner = html.Div([
@@ -721,82 +715,50 @@ def update_dashboard(_):
                     html.Span("⚠️ DEEPFAKE/SPOOFED CONTENT DETECTED", style={"fontSize":"14px","fontWeight":"700","color":"#fbbf24","textTransform":"uppercase","letterSpacing":"1px"}),
                     html.I(className="fas fa-exclamation-triangle", style={"fontSize":"16px","color":"#fbbf24","marginLeft":"10px","animation":"flash 1s infinite"}),
                 ], style={"display":"flex","alignItems":"center","justifyContent":"center"}),
-                html.P(f"This {mtype.upper()} file has been identified as potentially manipulated or artificially generated.", 
-                       style={"fontSize":"12px","color":"#fed7aa","margin":"8px 0 0 0","textAlign":"center","fontStyle":"italic"})
-            ], style={
-                "backgroundColor":"#451a03",
-                "border":"2px solid #f59e0b",
-                "borderRadius":"8px",
-                "padding":"12px",
-                "marginBottom":"12px",
-                "boxShadow":"0 0 15px rgba(245, 158, 11, 0.4)",
-                "animation":"glow 2s ease-in-out infinite alternate"
-            })
+                html.P(f"This {mtype.upper()} file is potentially manipulated.", style={"fontSize":"12px","color":"#fed7aa","margin":"8px 0 0 0","textAlign":"center","fontStyle":"italic"})
+            ], style={"backgroundColor":"#451a03","border":"2px solid #f59e0b","borderRadius":"8px","padding":"12px","marginBottom":"12px","boxShadow":"0 0 15px rgba(245, 158, 11, 0.4)","animation":"glow 2s ease-in-out infinite alternate"})
 
+        # Message block
         nodes.append(html.Div([
-            # Header with source, type, and status
+            # Header
             html.Div([
                 html.Div([
                     html.I(className=c_cfg["icon"], style={"fontSize":"16px","color":c_cfg["color"],"marginRight":"10px"}),
                     html.Span(c_cfg["name"], style={"fontSize":"14px","fontWeight":"600","color":"#f9fafb","marginRight":"12px"}),
                     html.Span(t_cfg["name"], style={"fontSize":"12px","color":t_cfg["color"],"backgroundColor":t_cfg["bg"],"padding":"2px 8px","borderRadius":"12px","border":f"1px solid {t_cfg['border']}"}),
-                ], style={"display":"flex","alignItems":"center"}),
+                ], style={"display":"flex","alignItems":"center","gap":"6px"}),
                 status_row
             ], style={"display":"flex","justifyContent":"space-between","alignItems":"center","marginBottom":"12px","flexWrap":"wrap","gap":"10px"}),
 
-            # Spoofing alert banner (only for spoofed content)
+            # Spoof banner
             spoof_banner,
 
-            # Message content
+            # Content
             html.Div([
                 html.P(m.get("content", "No content"), style={"fontSize":"14px","lineHeight":"1.5","color":"#d1d5db","margin":"0 0 12px 0"}),
+                # File/Media tag
                 html.Div([
                     html.I(className=t_cfg["icon"], style={"fontSize":"14px","color":t_cfg["color"],"marginRight":"8px"}),
                     html.Span(f"{t_cfg['name']} File", style={"fontSize":"12px","color":t_cfg["color"]}),
-                    # Add spoofing indicator in file tag for audio/video
                     html.Span(
                         " (SPOOFED)" if mtype in ["audio","video"] and is_spoofed == "spoofed" else 
                         " (VERIFIED)" if mtype in ["audio","video"] and is_spoofed == "authentic" else "",
-                        style={
-                            "fontSize":"11px",
-                            "fontWeight":"700",
-                            "color":"#ef4444" if is_spoofed == "spoofed" else "#10b981",
-                            "marginLeft":"4px"
-                        }
+                        style={"fontSize":"11px","fontWeight":"700","color":"#ef4444" if is_spoofed=="spoofed" else "#10b981","marginLeft":"4px"}
                     )
-                ], style={"display":"flex","alignItems":"center","padding":"8px 12px","backgroundColor":t_cfg["bg"],"borderRadius":"6px","border":f"1px solid {t_cfg['border']}","marginBottom":"12px"}) if mtype in ["audio","video","photo"] else html.Div(),
-                
-                # Footer with confidence scores and timestamp
+                ], style={"display":"flex","alignItems":"center","padding":"6px 10px","backgroundColor":t_cfg["bg"],"borderRadius":"6px","border":f"1px solid {t_cfg['border']}","marginBottom":"12px"}) if mtype in ["audio","video","photo"] else html.Div(),
+
+                # Footer
                 html.Div([
                     html.Div([
-                        html.Span(
-                            f"Threat: {confidence:.0%}" if confidence is not None and status == "completed" else ("Analyzing..." if status == "processing" else "Completed"),
-                            style={"fontSize":"12px","color":"#9ca3af","marginRight":"15px"},
-                        ),
-                        # Prominent spoofing confidence for audio/video
-                        html.Span(
-                            f"Spoof Detection: {spoof_confidence:.0%}" if spoof_confidence is not None and mtype in ("audio", "video") and status == "completed" else "",
-                            style={
-                                "fontSize":"12px",
-                                "color":"#ef4444" if is_spoofed == "spoofed" else "#10b981" if is_spoofed == "authentic" else "#9ca3af",
-                                "fontWeight":"600" if is_spoofed else "normal"
-                            },
-                        ) if mtype in ("audio", "video") else html.Div(),
-                    ], style={"display":"flex","alignItems":"center"}),
-                    html.Span(m.get("timestamp", dt.datetime.now().strftime("%H:%M:%S")), style={"fontSize":"12px","color":"#9ca3af"}),
-                ], style={"display":"flex","justifyContent":"space-between","alignItems":"center","paddingTop":"10px","borderTop":"1px solid #374151"}),
+                        html.Span(f"Threat: {confidence:.0%}" if confidence is not None and status == "completed" else ("Analyzing..." if status=="processing" else "Completed"), style={"fontSize":"12px","color":"#9ca3af","marginRight":"15px"}),
+                        html.Span(f"Spoof Detection: {spoof_confidence:.0%}" if spoof_confidence is not None and mtype in ("audio","video") and status=="completed" else "", style={"fontSize":"12px","color":"#ef4444" if is_spoofed=="spoofed" else "#10b981" if is_spoofed=="authentic" else "#9ca3af","fontWeight":"600" if is_spoofed else "normal"})
+                    ], style={"display":"flex","alignItems":"center","gap":"12px"}),
+                    html.Span(m.get("timestamp", dt.datetime.now().strftime("%H:%M:%S")), style={"fontSize":"12px","color":"#9ca3af"})
+                ], style={"display":"flex","justifyContent":"space-between","alignItems":"center","paddingTop":"8px","borderTop":"1px solid #374151"})
             ])
-        ], style={
-            "backgroundColor":"#1f2937",
-            "border":"1px solid #374151",
-            "borderRadius":"8px",
-            "padding":"16px",
-            "marginBottom":"12px",
-            "boxShadow":"0 2px 4px rgba(0,0,0,0.3)",
-            # Add special border for spoofed content
-            "borderLeft": f"4px solid #ef4444" if mtype in ("audio", "video") and is_spoofed == "spoofed" else "4px solid transparent"
-        }))
+        ], style={"backgroundColor":"#1f2937","border":"1px solid #374151","borderRadius":"8px","padding":"16px","marginBottom":"16px","boxShadow":"0 2px 6px rgba(0,0,0,0.3)","borderLeft": f"4px solid #ef4444" if mtype in ("audio","video") and is_spoofed=="spoofed" else "4px solid transparent"}))
 
+    # Empty state
     if not nodes:
         nodes = [html.Div([
             html.I(className="fas fa-inbox", style={"fontSize":"48px","color":"#6b7280","marginBottom":"16px"}),
@@ -805,6 +767,7 @@ def update_dashboard(_):
         ], style={"textAlign":"center","padding":"60px","backgroundColor":"#1f2937","borderRadius":"8px","border":"2px dashed #374151"})]
 
     return nodes, safe_count, threat_count, active_channels
+
 # Dark theme CSS
 
 dash_app.index_string = '''
@@ -837,13 +800,7 @@ dash_app.index_string = '''
 </html>
 '''
 
-# -------------------------------
-# Message Processing pipeline
-# -------------------------------
-# Add these modifications to your existing code:
 
-
-# 2. Update message processing to handle spoofing detection
 async def process_message(msg: Dict):
     """Call respective API, set prediction, send alerts, then cleanup file."""
     try:
@@ -877,7 +834,7 @@ async def process_message(msg: Dict):
         if mtype in ("audio", "video"):
             spoof_flag = api_response.get("is_spoofed", None)
             spoof_confidence = api_response.get("spoof_confidence", None)
-            print(spoof_flag)
+            logging.info(f"Spoof flag: {spoof_flag}")
             if spoof_flag is not None:
                 msg["is_spoofed"] = str(spoof_flag)
                 if spoof_confidence is not None:
@@ -908,13 +865,13 @@ async def process_message(msg: Dict):
                     account_source=account_name,
                     sender=sender_name,
                     sender_email=sender_email,
-                    email_subject_title=alert_msg[:50],
+                    email_subject_title=alert_msg,
                 ),
             )
     except Exception as e:
         msg["status"] = "completed"
         msg["prediction"] = msg.get("prediction") or "safe"
-        print(f"Error in process_message: {e}")
+        logging.error(f"Error in process_message: {e}")
     finally:  
         pass
         # if mtype != "video":
@@ -966,7 +923,7 @@ async def run_all():
             pass
 
     await stop_event.wait()
-    print("\nShutting down…")
+    logging.info("Shutting down…")
 
     for t in tasks:
         t.cancel()

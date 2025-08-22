@@ -43,6 +43,14 @@
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
+
+### 🔒 Security Enhancements
+- **Environment variables**: `.env` files are now properly excluded from version control
+- **Sensitive data protection**: Model files, logs, and temporary files are gitignored
+- **Clean deployment**: Ready for secure GitHub deployment
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -64,7 +72,7 @@
 
 #### 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/nexus-guard.git
+   git clone https://github.com/Devendhake18/Nexus-Guard---Group-17---Usecase-6
    cd nexus-guard
    ```
 
@@ -220,18 +228,19 @@ nexus-guard/
 ├── flask_api.py          # REST API for fraud detection
 ├── RawNetLite.py         # Audio spoofing detection model
 ├── audio_preprocessor.py # Audio preprocessing utilities
-├── components/           # UI components and dashboard
-├── config/              # Model configuration files
 ├── models/              # Pre-trained AI models (Google Drive)
 ├── my_models/           # Additional ML models
-├── assets/              # Static assets and resources
 ├── temp/                # Temporary file storage
 └── test_*/              # Test files for different modalities
 ```
 
+> **Note**: The project structure has been cleaned up by removing unused directories (`assets/`, `components/`, `.dist/`, `config/`) to focus on essential functionality and improve maintainability.
+
 ## 🔧 Configuration
 
 ### Environment Variables
+
+**Important**: Create a `.env` file in the project root with the following variables. This file is automatically excluded from version control for security.
 
 Create a `.env` file with the following variables:
 

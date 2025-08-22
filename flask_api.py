@@ -15,7 +15,6 @@ import ffmpeg
 
 import torch
 import torchaudio
-import os
 from RawNetLite import RawNetLite
 from audio_preprocessor import preprocess_audio
 
@@ -39,20 +38,23 @@ with open("my_models/tfidf_vectorizer.pkl", "rb") as f:
 with open("my_models/phishing_model2.pkl", "rb") as f:
     phising_model = pickle.load(f)
 
-# Audio model paths
-MODEL_PATH = "models/model_logical_CCE_100_32_0.0001/model_best_epoch100.pth.tar"
-CONFIG_PATH = "config/model_config_RawNet.yaml"
-
-if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"Model not found at {MODEL_PATH}")
-if not os.path.exists(CONFIG_PATH):
-    raise FileNotFoundError(f"Config not found at {CONFIG_PATH}")
-
-# from audio_spoof_detector import analyze_audio_file
-
 model_transcribe = whisper.load_model("base") 
 
+# --- FILE SECURITY ---
+ALLOWED_EXTENSIONS = {"wav", "mp3","flac" ,"mp4", "jpg", "png"}
+MAX_FILE_SIZE_MB = 200
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def check_file_size(file):
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    return size <= MAX_FILE_SIZE_BYTES
+
+# --- BiLSTM CLASSIFIER ---
 class BiLSTMClassifier(nn.Module):
     def __init__(self, vocab_size, embed_dim=128, lstm_units=64, dropout_rate=0.5):
         super(BiLSTMClassifier, self).__init__()
@@ -104,7 +106,7 @@ class TokenizerCustom:
             padded[i, -len(trunc):] = trunc  # right align
         return padded
 
-with open("my_models/tokenizer_text.pkl", "rb") as f:   # <-- path to your saved tokenizer.pkl
+with open("my_models/tokenizer_text.pkl", "rb") as f:
     keras_tokenizer = pickle.load(f)
 
 tokenizer_word_index = keras_tokenizer.word_index
@@ -113,9 +115,19 @@ tokenizer = TokenizerCustom(tokenizer_word_index, max_len=300)
 # --- FLASK APP ---
 app = Flask(__name__)
 
+# --- RATE LIMITING ---
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    key_func=get_remote_address,       # specify key_func only once
+    default_limits=["5 per minute"]    # optional: rate limits
+)
+
+# Attach limiter to app
+limiter.init_app(app)
 # ---------------- UTILS ----------------
 def preprocess_text_email(text: str) -> str:
-    """Clean and preprocess input text."""
     text = text.lower()
     text = re.sub(r"http\S+|www\S+|https\S+", "", text)
     text = text.translate(str.maketrans("", "", string.punctuation))
@@ -133,37 +145,26 @@ def preprocess_text_text(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-
 def run_audio_analysis(file_path: str) -> dict:
-    """Run audio spoof detection and format result."""
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = RawNetLite().to(device)
     model.load_state_dict(torch.load("my_models/cross_domain_rawnet_lite.pt", map_location=device))
     model.eval()
-    
-    # Load and process audio
     waveform, sr = torchaudio.load(file_path)
     audio_tensor = preprocess_audio(waveform, sr, target_sr=16000, target_sec=3.0)
     audio_tensor = audio_tensor.unsqueeze(0).to(device)
-    
-    # Get prediction
     with torch.no_grad():
         output = model(audio_tensor)
         probability = output.item()
-        
         if probability > 0.5:
             result = 1
             confidence = probability
         else:
             result = 0
             confidence = 1 - probability
-        
         return result, confidence
 
-
 def extract_audio_from_video(video_path: str) -> str:
-    """Extract audio from video using ffmpeg."""
     tmp_audio = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
     tmp_audio.close()
     ffmpeg.input(video_path).output(
@@ -171,9 +172,7 @@ def extract_audio_from_video(video_path: str) -> str:
     ).run(quiet=True, overwrite_output=True)
     return tmp_audio.name
 
-
 def image_ocr(image_path: str) -> str:
-    """Extract text from image using pytesseract."""
     image = cv2.imread(image_path)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.bilateralFilter(gray, 11, 17, 17)
@@ -190,47 +189,23 @@ def predict_email_func(text):
     seq = tokenizer.texts_to_sequences([clean_text])
     pad_seq = tokenizer.pad_sequences(seq)
     input_tensor = torch.tensor(pad_seq, dtype=torch.long).to(device)
-
     with torch.no_grad():
         prob = model(input_tensor).item()
-    
     label = "Phishing" if prob > 0.5 else "Safe"
     return label, prob
 
-
 # ---------------- ROUTES ----------------
+
 # Text prediction
-# @app.route("/predict-email", methods=["POST"])
-# def predict_email_route():
-#     data = request.get_json()
-#     if not data or "text" not in data:
-#         return jsonify({"error": "Missing 'text' field"}), 400
-
-#     try:
-#         cleaned_text = preprocess_text_email(data["text"])
-#         text_tfidf = tfidf.transform([cleaned_text])
-#         prediction = int(phising_model.predict(text_tfidf)[0])
-#         probability = phising_model.predict_proba(text_tfidf).tolist()
-
-#         return jsonify({
-#             "cleaned_text": cleaned_text,
-#             "prediction": prediction,
-#             "probability": probability
-#         })
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
-    
 @app.route("/predict-text", methods=["POST"])
+@limiter.limit("20 per minute")
 def predict_text():
     data = request.get_json()
     if not data or "text" not in data:
         return jsonify({"error": "Missing 'text' field"}), 400
-
     try:
         label, prob = predict_email_func(data["text"])
-        print(label)
         label = 1 if label == "Phishing" else 0
-
         return jsonify({
             "cleaned_text": "",
             "prediction": label,
@@ -239,14 +214,17 @@ def predict_text():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 # Video prediction
 @app.route("/predict-video", methods=["POST"])
+@limiter.limit("5 per minute")
 def predict_video():
     if "video" not in request.files:
         return jsonify({"error": "No video file uploaded. Use key 'video'"}), 400
-
     video_file = request.files["video"]
+    if not allowed_file(video_file.filename):
+        return jsonify({"error": "File type not allowed"}), 400
+    if not check_file_size(video_file):
+        return jsonify({"error": f"File exceeds {MAX_FILE_SIZE_MB}MB"}), 400
     if not video_file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
@@ -262,9 +240,7 @@ def predict_video():
         audio_path = extract_audio_from_video(video_path)
 
         transcribed_text = transcribe(audio_path)
-        print(transcribed_text['text'])
         label, prob = predict_email_func(transcribed_text)
-        print(label)
         label = 1 if label == "Phishing" else 0
 
         result, confidence = run_audio_analysis(audio_path)
@@ -277,7 +253,6 @@ def predict_video():
         })
 
     except Exception as e:
-        print("Error in /predict-video:", e)
         return jsonify({"error": str(e)}), 500
 
     finally:
@@ -285,19 +260,22 @@ def predict_video():
             if f and os.path.exists(f):
                 os.remove(f)
 
-
 # Image prediction
 @app.route("/predict-image", methods=["POST"])
+@limiter.limit("20 per minute")
 def predict_text_image():
     if "image" not in request.files:
         return jsonify({"error": "No image file uploaded. Use key 'image'"}), 400
-
     image_file = request.files["image"]
+    if not allowed_file(image_file.filename):
+        return jsonify({"error": "File type not allowed"}), 400
+    if not check_file_size(image_file):
+        return jsonify({"error": f"File exceeds {MAX_FILE_SIZE_MB}MB"}), 400
+
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
             image_file.save(tmp.name)
             save_path = tmp.name
-        print(save_path)
 
         extracted_text = image_ocr(save_path)
         label, prob = predict_email_func(extracted_text)
@@ -316,11 +294,15 @@ def predict_text_image():
 
 # Audio prediction
 @app.route("/predict-audio", methods=["POST"])
+@limiter.limit("10 per minute")
 def predict_audio():
     if "audio" not in request.files:
         return jsonify({"error": "No audio file uploaded. Use key 'audio'"}), 400
-
     audio_file = request.files["audio"]
+    if not allowed_file(audio_file.filename):
+        return jsonify({"error": "File type not allowed"}), 400
+    if not check_file_size(audio_file):
+        return jsonify({"error": f"File exceeds {MAX_FILE_SIZE_MB}MB"}), 400
     if not audio_file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
@@ -331,12 +313,9 @@ def predict_audio():
             temp_path = tmp.name
 
         transcribed_text = transcribe(temp_path)
-        print(transcribed_text['text'])
         label, prob = predict_email_func(transcribed_text)
-        print(label)
         label = 1 if label == "Phishing" else 0
         
-        result = run_audio_analysis(temp_path)
         result, confidence = run_audio_analysis(temp_path)
 
         return jsonify({
@@ -350,7 +329,6 @@ def predict_audio():
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-
 
 # ---------------- RUN APP ----------------
 if __name__ == "__main__":
