@@ -1,56 +1,87 @@
 # Core Flask and Web Framework
-Flask==2.3.3
-Werkzeug==2.3.7
+Flask==3.0.3
+Werkzeug==3.0.6
 
 # Machine Learning and Deep Learning
-torch==2.1.0
-torchaudio==2.1.0
-torchvision==0.16.0
-numpy==1.24.3
-scikit-learn==1.3.0
+torch==2.6.0+cu118
+torchaudio==2.6.0+cu118
+torchvision==0.21.0+cu118
+numpy==1.26.4
+scikit-learn==1.6.1
 
 # Audio Processing
-librosa==0.10.1
-soundfile==0.12.1
+librosa==0.11.0
+soundfile==0.13.1
 ffmpeg-python==0.2.0
 
 # Computer Vision and Image Processing
-opencv-python==4.8.1.78
-pytesseract==0.3.10
-Pillow==10.0.1
+opencv-python==4.11.0.86
+pytesseract==0.3.13
+Pillow==11.0.0
 
 # Natural Language Processing
-nltk==3.8.1
-transformers==4.35.0
+nltk==3.9.1
+transformers==4.54.1
 
 # Speech Recognition and Transcription
-whisper==1.1.10
-openai-whisper==20231117
+openai-whisper==20250625
 
 # Email and Communication
 imapclient==3.0.1
-python-telegram-bot==20.6
-discord.py==2.3.2
+python-telegram-bot==22.3
+discord.py==2.6.0
 
 # Data Processing and Utilities
-pandas==2.0.3
-requests==2.31.0
-python-dotenv==1.0.0
+pandas==2.2.3
+requests==2.32.3
+python-dotenv==1.1.1
 
 # Dashboard and UI
-dash==2.14.1
-plotly==5.17.0
+dash==3.0.3
+plotly==6.0.1
 
 # System and OS
-win11toast==1.0.0
-psutil==5.9.6
+win11toast==0.35
+psutil==7.0.0
 
 # Development and Testing
-pytest==7.4.3
-black==23.11.0
-flake8==6.1.0
+ruff==0.12.9
 
 # Additional Dependencies
-aiohttp==3.8.6
-aiofiles==23.2.1
-asyncio-mqtt==0.16.1
+aiohttp==3.12.15
+aiofiles==24.1.0
+
+# TensorFlow and Keras
+tensorflow==2.20.0
+keras==3.11.2
+
+# Additional ML Libraries
+scipy==1.15.2
+matplotlib==3.10.1
+seaborn==0.13.2
+ultralytics==8.3.112
+
+# Media and Image Processing
+mediapipe==0.10.21
+scikit-image==0.25.2
+imageio==2.37.0
+
+# Jupyter and Development Tools
+ipykernel==6.29.5
+ipython==8.35.0
+jupyter_client==8.6.3
+
+# Audio and Speech
+pyaudio==0.2.14
+pydub==0.25.1
+sounddevice==0.5.1
+speechrecognition==3.14.3
+
+# Face Recognition
+face-recognition==1.3.0
+dlib==19.22.99
+
+# Additional Utilities
+gradio==5.43.1
+fastapi==0.116.1
+uvicorn==0.35.0

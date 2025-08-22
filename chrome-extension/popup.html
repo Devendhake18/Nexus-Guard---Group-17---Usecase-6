@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Guard MUFG</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-section">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="title">
+                    <h1>NEXUS GUARD</h1>
+                    <p>MUFG Security System</p>
+                </div>
+            </div>
+            <div class="status">
+                <div class="status-dot active"></div>
+                <span>ACTIVE</span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button class="action-btn" id="scan-text">
+                <i class="fas fa-font"></i>
+                <span>Scan Text</span>
+            </button>
+            <button class="action-btn" id="scan-file">
+                <i class="fas fa-file-upload"></i>
+                <span>Scan File</span>
+            </button>
+            <button class="action-btn" id="screenshot-analyze">
+                <i class="fas fa-camera"></i>
+                <span>Screenshot & Analyze</span>
+            </button>
+        </div>
+
+        <!-- File Upload Area -->
+        <div class="upload-area" id="upload-area" style="display: none;">
+            <div class="upload-content">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drop files here or click to browse</p>
+                <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.mp3,.wav,.flac,.mp4,.mov,.avi" multiple>
+            </div>
+        </div>
+
+        <!-- Text Input Area -->
+        <div class="text-area" id="text-area" style="display: none;">
+            <textarea id="text-input" placeholder="Enter text to scan for phishing/scam content..."></textarea>
+            <button class="scan-btn" id="scan-text-btn">Scan Text</button>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results" id="results" style="display: none;">
+            <div class="result-header">
+                <h3>Scan Results</h3>
+                <div class="result-status" id="result-status">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Analyzing...</span>
+                </div>
+            </div>
+            <div class="result-details" id="result-details">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="settings">
+            <button class="settings-btn" id="settings-btn">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </button>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="modal" id="settings-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button class="close-btn" id="close-settings">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-item">
+                        <label>API Endpoint:</label>
+                        <input type="text" id="api-endpoint" value="http://127.0.0.1:5000" placeholder="API endpoint">
+                    </div>
+
+                    <div class="setting-item">
+                        <label>Notifications:</label>
+                        <input type="checkbox" id="notifications" checked>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="save-btn" id="save-settings">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

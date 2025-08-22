@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Nexus Guard MUFG",
+  "version": "1.0.0",
+  "description": "Multi-platform threat detection system for detecting scams, phishing, and spoofed content",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "notifications",
+    "tabs",
+    "webNavigation",
+    "webRequest",
+    "scripting",
+    "contextMenus",
+    "downloads"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:5000/*",
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Nexus Guard MUFG"
+  }
+}

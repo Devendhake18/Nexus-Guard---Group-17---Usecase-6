@@ -30,19 +30,26 @@
 - **Confidence Scoring**: Probability-based threat assessment
 - **Automated Response**: Configurable alert systems and response mechanisms
 
+### 🌐 Chrome Extension
+- **Real-Time Web Protection**: Browser extension for instant fraud detection while browsing
+- **URL Analysis**: Automatic scanning of suspicious URLs and websites
+- **Content Filtering**: Real-time analysis of web content for fraud indicators
+- **Seamless Integration**: Works alongside the main application for comprehensive protection
+- **User-Friendly Interface**: Simple one-click fraud detection with instant results
+
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Input Layer   │    │  AI Models      │    │  Alert System   │
 │                 │    │                 │    │                 │
-│ • Text         │───▶│ • BiLSTM        │───▶│ • Telegram     │
-│ • Audio        │    │ • RawNetLite    │    │ • Discord      │
-│ • Image        │    │ • TF-IDF        │    │ • Email        │
-│ • Video        │    │ • OCR           │    │ • Desktop      │
+  │ • Text        │───▶│ • BiLSTM       │───▶│ • Telegram      │
+│ • Audio         │    │ • RawNetLite    │    │ • Discord       │
+│ • Image         │    │ • TF-IDF        │    │ • Email         │
+│ • Video         │    │ • OCR           │    │ • Desktop       │
+│ • Web Content   │    │ • Web Scanner   │    │ • Browser       │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
-
 
 ### 🔒 Security Enhancements
 - **Environment variables**: `.env` files are now properly excluded from version control
@@ -60,6 +67,7 @@
 - **Tesseract OCR** installed and configured
 - **FFmpeg** installed and added to system PATH
 - **Git** for cloning the repository
+- **Google Chrome** for the browser extension
 
 ### System Requirements
 
@@ -67,12 +75,20 @@
 - **Storage**: At least 5GB free space for models and dependencies
 - **OS**: Windows 10/11, macOS, or Linux
 - **Network**: Internet connection for model downloads and API calls
+- **Browser**: Google Chrome (for extension functionality)
+
+### Demo Videos
+
+Watch our demo videos to see Nexus Guard in action:
+
+- **🎥 Demo Video 1**: [Watch Demo Video 1](https://drive.google.com/file/d/1v20T9JeL8Cx0oAqRqylfoRe_VMJvM9X6/view?usp=sharing)
+- **🎥 Demo Video 2**: [Watch Demo Video 2](https://drive.google.com/file/d/1v20T9JeL8Cx0oAqRqylfoRe_VMJvM9X6/view?usp=sharing)
 
 ### Installation Steps
 
 #### 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/Devendhake18/Nexus-Guard---Group-17---Usecase-6
+   git clone https://github.com/Devendhake18/Nexus-Guard---Group-17---Usecase-6.git
    cd nexus-guard
    ```
 
@@ -135,7 +151,14 @@
    # Use any text editor or IDE
    ```
 
-#### 7. **Verify Installation**
+#### 7. **Install Chrome Extension**
+   - Open Google Chrome and navigate to `chrome://extensions/`
+   - Enable "Developer mode" in the top right corner
+   - Click "Load unpacked" and select the `chrome-extension/` folder from the project
+   - The Nexus Guard extension will appear in your browser toolbar
+   - Click the extension icon to activate fraud detection while browsing
+
+#### 8. **Verify Installation**
    ```bash
    # Test if all dependencies are installed
    python -c "import torch, flask, cv2, whisper; print('All packages imported successfully!')"
@@ -230,6 +253,7 @@ nexus-guard/
 ├── audio_preprocessor.py # Audio preprocessing utilities
 ├── models/              # Pre-trained AI models (Google Drive)
 ├── my_models/           # Additional ML models
+├── chrome-extension/    # Chrome browser extension for web protection
 ├── temp/                # Temporary file storage
 └── test_*/              # Test files for different modalities
 ```
@@ -318,6 +342,41 @@ Content-Type: multipart/form-data
 video: [video_file]
 ```
 
+## 🌐 Chrome Extension
+
+### Overview
+The Nexus Guard Chrome Extension provides real-time fraud detection while browsing the web. It seamlessly integrates with the main application to offer comprehensive protection across all your online activities.
+
+### Features
+- **🔍 Real-Time URL Scanning**: Automatically analyzes URLs for suspicious patterns
+- **📝 Content Analysis**: Scans web page content for fraud indicators
+- **🚨 Instant Alerts**: Provides immediate warnings for detected threats
+- **⚡ Lightweight**: Minimal impact on browsing performance
+- **🔒 Privacy-Focused**: All analysis happens locally or through secure API calls
+
+### Installation
+1. **Load Extension in Chrome**:
+   - Navigate to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the `chrome-extension/` folder from the project
+
+2. **Activate Protection**:
+   - Click the Nexus Guard icon in your browser toolbar
+   - The extension will automatically start monitoring your browsing
+
+### Usage
+- **Automatic Protection**: The extension runs in the background while browsing
+- **Manual Scan**: Click the extension icon to manually scan the current page
+- **Settings**: Configure detection sensitivity and notification preferences
+- **History**: View your fraud detection history and blocked threats
+
+### Integration
+The Chrome Extension works alongside the main Nexus Guard application:
+- **Shared Models**: Uses the same AI models for consistent detection
+- **Unified Dashboard**: View all threats (web, email, audio, etc.) in one place
+- **Centralized Alerts**: Receive notifications through your preferred channels
+
 ## 🔍 Usage Examples
 
 ### Email Monitoring
@@ -337,6 +396,12 @@ response = requests.post('http://localhost:5000/predict-text',
 result = response.json()
 ```
 
+### Web Protection
+The Chrome Extension provides seamless web protection:
+- Browse safely with real-time threat detection
+- Get instant warnings for suspicious websites
+- Maintain a secure browsing experience
+
 ## 📊 Performance Metrics
 
 - **Text Detection**: 95%+ accuracy on phishing detection
@@ -355,21 +420,6 @@ result = response.json()
 ## 📝 License
 
 This project is developed for the MUFG Hackathon. All rights reserved.
-
-## 🙏 Acknowledgments
-
-- **MUFG Hackathon** for providing the platform
-- **Open Source Community** for the underlying AI/ML libraries
-- **Research Community** for the state-of-the-art detection models
-
-## 📞 Support
-
-For questions and support:
-- Create an issue in this repository
-- Contact the development team
-- Check the documentation in the `docs/` folder
-
----
 
 **⚠️ Important Note**: All pre-trained models are stored in Google Drive due to size constraints. Please use the provided drive link to access the models before running the application.
 
