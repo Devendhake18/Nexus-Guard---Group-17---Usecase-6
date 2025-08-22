@@ -352,25 +352,6 @@ result = response.json()
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
-
-This project is developed for the MUFG Hackathon. All rights reserved.
-
-## 🙏 Acknowledgments
-
-- **MUFG Hackathon** for providing the platform
-- **Open Source Community** for the underlying AI/ML libraries
-- **Research Community** for the state-of-the-art detection models
-
-## 📞 Support
-
-For questions and support:
-- Create an issue in this repository
-- Contact the development team
-- Check the documentation in the `docs/` folder
-
----
-
 **⚠️ Important Note**: All pre-trained models are stored in Google Drive due to size constraints. Please use the provided drive link to access the models before running the application.
 
 **🔗 Model Access**: [Google Drive Models Folder](https://drive.google.com/drive/folders/1OGZ1Ztdp9VsrVgoe2XqCLQoqTtjPHmuS?usp=sharing)
